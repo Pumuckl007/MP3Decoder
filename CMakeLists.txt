@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.2)
+
+set(CMAKE_BUILD_TYPE Debug)
+
+set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
+
+set(MP3_DECODER_INSTALL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(MP3_DECODER_INSTALL_BIN_DIR ${PROJECT_SOURCE_DIR}/bin)
+set(MP3_DECODER_INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
+
+set(MP3_DECODER_HEADERS_DIR ${PROJECT_SOURCE_DIR}/src)
+
+include_directories(${MP3_DECODER_INSTALL_INCLUDE_DIR})
+include_directories(${MP3_DECODER_HEADERS_DIR})
+
+add_subdirectory(src)
+add_subdirectory(test)
