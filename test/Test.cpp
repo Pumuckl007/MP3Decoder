@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "FrameTest.cpp"
 
 int main (int argc, char ** argv){
   testing::InitGoogleTest(&argc, argv);
