@@ -10,7 +10,7 @@ TEST(Frame, FindsFirstFrameInFile){
     FAIL();
     return;
   }
-  char tmpOutput[0x1FF];
+  unsigned char tmpOutput[0x1FF];
   int start = advanceToFrameHeader(pFile, &tmpOutput[0], 0x1FF);
   ASSERT_EQ(0x1, start);
   fclose(pFile);
@@ -25,8 +25,31 @@ TEST(Frame, FindsSecondFrameInFile){
     return;
   }
   fgetc(pFile);
-  char tmpOutput[0x1FF];
+  unsigned char tmpOutput[0x1FF];
   int start = advanceToFrameHeader(pFile, &tmpOutput[0], 0x1FF);
   ASSERT_EQ(0x1A1, start);
+  fclose(pFile);
+}
+
+TEST(Frame, PopulateFrameHeaderPopulatesFirstFrame){
+  FILE * pFile;
+  pFile = fopen(TEST_MUSIC"300HzSine.mp3", "r");
+  if(pFile == NULL){
+    fprintf(stderr, "Error opening File\n");
+    FAIL();
+    return;
+  }
+  unsigned char tmpOutput[0x1FF];
+  FrameHeader header;
+  int start = advanceToFrameHeader(pFile, &tmpOutput[0], 0x1FF);
+  int sucess = populateFrameHeader(pFile, &tmpOutput[0], start, &header);
+  ASSERT_GT(sucess, 0);
+  ASSERT_EQ(0b11, header.audioIdVersion);
+  ASSERT_EQ(0b01, header.layerDescription);
+  ASSERT_EQ(0b1, header.protectionBit);
+  ASSERT_EQ(0b1001, header.bitrateIndex);
+  ASSERT_EQ(0b00, header.sampleRateIndex);
+  ASSERT_EQ(0b0, header.paddingBit);
+  ASSERT_EQ(0b11, header.channelMode);
   fclose(pFile);
 }
