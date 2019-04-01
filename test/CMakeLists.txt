@@ -5,6 +5,8 @@ include_directories(${MP3_DECODER_HEADERS_DIR} ../googletest/googletest/include/
 
 set(SOURCE_FILES Test.cpp)
 
+add_definitions(-DTEST_MUSIC="${PROJECT_SOURCE_DIR}/../testMusic/")
+
 link_directories(/usr/lib/ ../googletest/googletest/build/lib)
 
 add_executable(MP3Decoder_tests ${SOURCE_FILES})
