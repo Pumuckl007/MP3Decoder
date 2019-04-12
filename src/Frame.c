@@ -31,6 +31,36 @@ typedef struct FrameHeader {
   unsigned short channelMode;
 } FrameHeader;
 
+typedef struct SideInfoGranual {
+  unsigned int par23Length;
+  unsigned int bigValues;
+  unsigned int globalGain;
+  unsigned int scalefacCompress;
+  unsigned int windowsSwitchingFlag;
+  unsigned int blockType;
+  unsigned int mixedBlockFlag;
+  unsigned int tableSelect;
+  unsigned int subblockGain;
+  unsigned int region0Count;
+  unsigned int region1Count;
+  unsigned int preflag;
+  unsigned int scalefacScale;
+  unsigned int count1TableSelect;
+} SideInfoGranual;
+
+typedef struct SideInformation {
+  unsigned int mainDataBegin;
+  unsigned int private_bits;
+  unsigned int scfsi;
+
+} SideInformation;
+
+typedef struct BitReader {
+  unsigned char buff;
+  FILE *pFile;
+  int used;
+} bitReader;
+
 /**
  * Advances a file pointer to the next frame header writing the preceding
  * data to output.
@@ -105,4 +135,38 @@ int populateFrameHeader(FILE *pFile, unsigned char *output, int headerStart,
   frameHeader->channelMode = ( CHANNEL_MODE_MASK & byte4 ) >>
                              CHANNEL_MODE_SHIFT;
   return 1;
+}
+
+int readSingleSideInformation(FILE *pFile);
+
+int readBits(int howMany, BitReader * bitReader){
+  if(howMany == 0){
+    return 0;
+  }
+  if(howMany > 31){
+    return -1;
+  }
+  int acc = 0;
+  while(howMany > 0){
+    if(bitReader->used >= 8){
+      int charGot = fgetc(bitReader->pFile);
+      if(charGot < 0){
+        return charGot;
+      }
+      bitReader->used = 0;
+      bitReader->buff = (unsigned char) charGot;
+    }
+    acc <<= 1;
+    acc |= (bitReader->buff & 0x80) >> 7;
+    bitReader->buff <<= 1;
+    howMany --;
+    bitReader->used ++;
+  }
+  return acc;
+}
+
+void initReader(BitReader *reader, FILE *pFile){
+  reader->buff = 0;
+  reader->used = 9;
+  reader->pFile = pFile;
 }

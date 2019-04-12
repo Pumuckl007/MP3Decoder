@@ -53,3 +53,24 @@ TEST(Frame, PopulateFrameHeaderPopulatesFirstFrame){
   ASSERT_EQ(0b11, header.channelMode);
   fclose(pFile);
 }
+
+TEST(Frame, BitReaderReadsBits){
+  FILE * pFile;
+  pFile = fopen(TEST_MUSIC"300HzSine.mp3", "r");
+  if(pFile == NULL){
+    fprintf(stderr, "Error opening File\n");
+    FAIL();
+    return;
+  }
+  BitReader reader;
+  initReader(&reader, pFile);
+  ASSERT_EQ(0b1, readBits(1, &reader));
+  ASSERT_EQ(0xFF, readBits(8, &reader));
+  ASSERT_EQ(-1, readBits(32, &reader));
+  ASSERT_EQ(0b1111011, readBits(7, &reader));
+  ASSERT_EQ(0x90, readBits(8, &reader));
+  ASSERT_EQ(0xC, readBits(4, &reader));
+  ASSERT_EQ(0x400, readBits(12, &reader));
+  ASSERT_EQ(0x0, readBits(0, &reader));
+  fclose(pFile);
+}
