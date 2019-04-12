@@ -74,3 +74,39 @@ TEST(Frame, BitReaderReadsBits){
   ASSERT_EQ(0x0, readBits(0, &reader));
   fclose(pFile);
 }
+
+TEST(Frame, ReadsSingleSideInformation){
+  FILE * pFile;
+  pFile = fopen(TEST_MUSIC"300HzSine.mp3", "r");
+  if(pFile == NULL){
+    fprintf(stderr, "Error opening File\n");
+    FAIL();
+    return;
+  }
+  fgetc(pFile);
+  unsigned char tmpOutput[0x1FF];
+  FrameHeader header;
+  int start = advanceToFrameHeader(pFile, &tmpOutput[0], 0x1FF);
+  populateFrameHeader(pFile, &tmpOutput[0], start, &header);
+  SideInformation sideInfo = {0};
+  readSingleSideInformation(pFile, &sideInfo);
+  ASSERT_EQ(0, sideInfo.mainDataBegin);
+  ASSERT_EQ(0, sideInfo.private_bits);
+  ASSERT_EQ(0, sideInfo.scfsi);
+
+  ASSERT_EQ(0b001101011101, sideInfo.granual1.par23Length);
+  ASSERT_EQ(0b10001, sideInfo.granual1.bigValues);
+  ASSERT_EQ(0b10101011, sideInfo.granual1.globalGain);
+  ASSERT_EQ(0b1010, sideInfo.granual1.scalefacCompress);
+  ASSERT_EQ(1, sideInfo.granual1.windowsSwitchingFlag);
+  ASSERT_EQ(1, sideInfo.granual1.blockType);
+  ASSERT_EQ(0, sideInfo.granual1.mixedBlockFlag);
+  ASSERT_EQ(0b1100000000, sideInfo.granual1.tableSelect);
+  ASSERT_EQ(0, sideInfo.granual1.subblockGain);
+  ASSERT_EQ(0b1010, sideInfo.granual1.region0Count);
+  ASSERT_EQ(0b11, sideInfo.granual1.region1Count);
+  ASSERT_EQ(1, sideInfo.granual1.preflag);
+  ASSERT_EQ(0, sideInfo.granual1.scalefacScale);
+  ASSERT_EQ(1, sideInfo.granual1.count1TableSelect);
+  fclose(pFile);
+}

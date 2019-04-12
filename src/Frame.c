@@ -17,6 +17,28 @@
 #define CHANNEL_MODE_MASK 0b11000000
 #define CHANNEL_MODE_SHIFT 6
 
+
+// Side information constants
+#define MAIN_DATA_BEGIN_SIZE 9
+#define PRIVATE_BITS_SIZE 5
+#define SCFSI_SIZE 4
+
+// Side Info Granual constants
+#define PAR2_3_LENGTH_SIZE 12
+#define BIG_VALUES_SIZE 9
+#define GLOBAL_GAIN_SIZE 8
+#define SCALEFAC_COMPRESS_SIZE 4
+#define WINDOWS_SWITCHING_FLAG_SIZE 1
+#define BLOCK_TYPE_SIZE 2
+#define MIXED_BLOCK_FLAG_SIZE 1
+#define TABLE_SELECT_SIZE_WSF_1 10
+#define TABLE_SELECT_SIZE_WSF_0 15
+#define SUBBLOCK_GAIN_SIZE 9
+#define REGION0_COUNT_SIZE 4
+#define REGION1_COUNT_SIZE 3
+#define PREFLAG_SIZE 1
+#define SCALFAC_SCALE_SIZE 1
+#define COUNT1TABLE_SELECT_SIZE 1
 /**
  * A struct to hold the data associated with the MP3 Header.
  * see http://mpgedit.org/mpgedit/mpeg_format/mpeghdr.htm for more info.
@@ -52,14 +74,19 @@ typedef struct SideInformation {
   unsigned int mainDataBegin;
   unsigned int private_bits;
   unsigned int scfsi;
-
+  SideInfoGranual granual1;
+  SideInfoGranual granual2;
 } SideInformation;
 
 typedef struct BitReader {
   unsigned char buff;
   FILE *pFile;
   int used;
-} bitReader;
+} BitReader;
+
+void initReader(BitReader *reader, FILE *pFile);
+int readBits(int howMany, BitReader * bitReader);
+void readSingleSideInfoGranual(BitReader *reader, SideInfoGranual *granual);
 
 /**
  * Advances a file pointer to the next frame header writing the preceding
@@ -137,7 +164,38 @@ int populateFrameHeader(FILE *pFile, unsigned char *output, int headerStart,
   return 1;
 }
 
-int readSingleSideInformation(FILE *pFile);
+void readSingleSideInformation(FILE *pFile, SideInformation *sideInfo){
+  BitReader reader;
+  initReader(&reader, pFile);
+  sideInfo->mainDataBegin = readBits(MAIN_DATA_BEGIN_SIZE, &reader);
+  sideInfo->private_bits  = readBits(PRIVATE_BITS_SIZE, &reader);
+  sideInfo->scfsi = readBits(SCFSI_SIZE, &reader);
+  readSingleSideInfoGranual(&reader, &sideInfo->granual1);
+  readSingleSideInfoGranual(&reader, &sideInfo->granual2);
+}
+
+void readSingleSideInfoGranual(BitReader *reader, SideInfoGranual *granual){
+  granual->par23Length          = readBits(PAR2_3_LENGTH_SIZE, reader);
+  granual->bigValues            = readBits(BIG_VALUES_SIZE, reader);
+  granual->globalGain           = readBits(GLOBAL_GAIN_SIZE, reader);
+  granual->scalefacCompress     = readBits(SCALEFAC_COMPRESS_SIZE, reader);
+  granual->windowsSwitchingFlag = readBits(WINDOWS_SWITCHING_FLAG_SIZE, reader);
+  granual->blockType            = readBits(BLOCK_TYPE_SIZE, reader);
+  granual->mixedBlockFlag       = readBits(MIXED_BLOCK_FLAG_SIZE, reader);
+
+  //Compute the table select size which is dependent on windowsSwitchingFlag
+  int tableSelectSize =
+    ( granual->windowsSwitchingFlag ) ? TABLE_SELECT_SIZE_WSF_1 :
+    TABLE_SELECT_SIZE_WSF_0;
+
+  granual->tableSelect       = readBits(tableSelectSize, reader);
+  granual->subblockGain      = readBits(SUBBLOCK_GAIN_SIZE, reader);
+  granual->region0Count      = readBits(REGION0_COUNT_SIZE, reader);
+  granual->region1Count      = readBits(REGION1_COUNT_SIZE, reader);
+  granual->preflag           = readBits(PREFLAG_SIZE, reader);
+  granual->scalefacScale     = readBits(SCALFAC_SCALE_SIZE, reader);
+  granual->count1TableSelect = readBits(COUNT1TABLE_SELECT_SIZE, reader);
+}
 
 int readBits(int howMany, BitReader * bitReader){
   if(howMany == 0){
@@ -157,16 +215,16 @@ int readBits(int howMany, BitReader * bitReader){
       bitReader->buff = (unsigned char) charGot;
     }
     acc <<= 1;
-    acc |= (bitReader->buff & 0x80) >> 7;
+    acc  |= ( bitReader->buff & 0x80 ) >> 7;
     bitReader->buff <<= 1;
-    howMany --;
-    bitReader->used ++;
+    howMany--;
+    bitReader->used++;
   }
   return acc;
 }
 
 void initReader(BitReader *reader, FILE *pFile){
-  reader->buff = 0;
-  reader->used = 9;
+  reader->buff  = 0;
+  reader->used  = 9;
   reader->pFile = pFile;
 }
